@@ -1,0 +1,19 @@
+# Ignore environment variable secrets
+.env 
+# Ignore Python bytecode files
+*.pyc
+# Ignore Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+# Ignore log files
+*.log
+# Ignore compiled Python files
+*.pyo
+# Ignore cache directories
+__pycache__/
+# Ignore data files
+data/
+# Ignore model files
+models/
+# Ignore temporary files
+*.tmp
+
