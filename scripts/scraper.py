@@ -7,9 +7,38 @@ from datetime import datetime, timedelta
 # --- Stock Data Collector ---
 def fetch_stock_data(symbol, period='1mo', interval='1d'):
     """Fetch historical stock data from Yahoo Finance."""
-    data = yf.download(symbol, period=period, interval=interval)
-    data.reset_index(inplace=True)
-    return data
+    try:
+        data = yf.download(symbol, period=period, interval=interval, auto_adjust=True)
+        
+        # Check if data is empty or None
+        if data is None or data.empty:
+            print(f"No data returned for {symbol}")
+            return pd.DataFrame()
+        
+        # Ensure we have a DataFrame
+        if not isinstance(data, pd.DataFrame):
+            print(f"Unexpected data type for {symbol}: {type(data)}")
+            return pd.DataFrame()
+        
+        # Check for required columns
+        required_columns = ['Open', 'High', 'Low', 'Close', 'Volume']
+        missing_columns = [col for col in required_columns if col not in data.columns]
+        if missing_columns:
+            print(f"Missing columns for {symbol}: {missing_columns}")
+            return pd.DataFrame()
+        
+        # Reset index to make Date a column
+        data.reset_index(inplace=True)
+        
+        # Ensure Date column exists
+        if 'Date' not in data.columns:
+            data['Date'] = data.index
+        
+        return data
+        
+    except Exception as e:
+        print(f"Error fetching data for {symbol}: {e}")
+        return pd.DataFrame()
 
 # --- News Scraper ---
 def scrape_news(query, max_articles=5):

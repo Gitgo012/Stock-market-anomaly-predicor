@@ -14,18 +14,65 @@ PROCESSED_DATA = os.path.join(PROCESSED_DIR, 'all_features_bert.csv')
 os.makedirs(PROCESSED_DIR, exist_ok=True)
 
 def compute_technical_features(df):
-    df = df.sort_values('Date').copy()
-    df['Close'] = pd.to_numeric(df['Close'], errors='coerce')
-    df['Volume'] = pd.to_numeric(df['Volume'], errors='coerce')
-    df.dropna(subset=['Close'], inplace=True)
-    df['Return'] = df['Close'].pct_change()
-    df['LogReturn'] = np.log(df['Close'] / df['Close'].shift(1))
-    df['LogReturn'].replace([np.inf, -np.inf], np.nan, inplace=True)
-    df['Volatility'] = df['Return'].rolling(window=5).std()
-    df['Volume_MA'] = df['Volume'].rolling(window=5).mean()
-    df['RelVolume'] = df['Volume'] / df['Volume_MA']
-    df.dropna(inplace=True)
-    return df
+    """Compute technical features for stock data."""
+    try:
+        # Ensure we have a valid DataFrame
+        if df is None or df.empty:
+            print("Warning: Empty DataFrame passed to compute_technical_features")
+            return pd.DataFrame()
+        
+        if not isinstance(df, pd.DataFrame):
+            print(f"Warning: Expected DataFrame, got {type(df)}")
+            return pd.DataFrame()
+        
+        # Make a copy and sort by date
+        df = df.sort_values('Date').copy()
+        
+        # Ensure required columns exist
+        required_cols = ['Date', 'Close', 'Volume']
+        missing_cols = [col for col in required_cols if col not in df.columns]
+        if missing_cols:
+            print(f"Warning: Missing required columns: {missing_cols}")
+            return pd.DataFrame()
+        
+        # Convert to numeric, handling errors
+        df['Close'] = pd.to_numeric(df['Close'], errors='coerce')
+        df['Volume'] = pd.to_numeric(df['Volume'], errors='coerce')
+        
+        # Remove rows with invalid Close prices
+        df.dropna(subset=['Close'], inplace=True)
+        
+        if df.empty:
+            print("Warning: No valid data after removing NaN Close prices")
+            return pd.DataFrame()
+        
+        # Compute returns
+        df['Return'] = df['Close'].pct_change()
+        
+        # Compute log returns, handling division by zero
+        df['LogReturn'] = np.log(df['Close'] / df['Close'].shift(1))
+        df['LogReturn'].replace([np.inf, -np.inf], np.nan, inplace=True)
+        
+        # Compute volatility (rolling standard deviation of returns)
+        df['Volatility'] = df['Return'].rolling(window=5, min_periods=1).std()
+        
+        # Compute volume moving average
+        df['Volume_MA'] = df['Volume'].rolling(window=5, min_periods=1).mean()
+        
+        # Compute relative volume
+        df['RelVolume'] = df['Volume'] / df['Volume_MA']
+        
+        # Replace infinite values with NaN
+        df['RelVolume'].replace([np.inf, -np.inf], np.nan, inplace=True)
+        
+        # Remove rows with NaN values
+        df.dropna(inplace=True)
+        
+        return df
+        
+    except Exception as e:
+        print(f"Error in compute_technical_features: {e}")
+        return pd.DataFrame()
 
 def sentiment_to_score(label):
     label = str(label).lower()
